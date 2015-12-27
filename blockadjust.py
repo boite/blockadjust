@@ -118,6 +118,8 @@ def generate_subnets(trie, network, max_prefixlen):
     should_debug = log.isEnabledFor(logging.DEBUG)
 
     subnet_prefixlen = network.prefixlen + 1
+    if subnet_prefixlen > max_prefixlen:
+        return
     if should_debug:
         log.debug(' Generate /%d subnets for %s',
                   subnet_prefixlen,
@@ -134,13 +136,6 @@ def generate_subnets(trie, network, max_prefixlen):
             if should_debug:
                 log.debug(' Subnet %s is desired - ADD', subnet_cidr)
             trie.add(subnet_cidr)
-        elif subnet_prefixlen >= max_prefixlen:
-            # fuck, what do we do here?
-            if should_debug:
-                log.debug(' subnet_prefixlen has reached %d - SKIP %s',
-                          subnet_prefixlen,
-                          subnet_cidr)
-            continue
         else:
             generate_subnets(trie, IPNetwork(subnet_cidr), max_prefixlen)
 
