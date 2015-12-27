@@ -46,6 +46,7 @@ from radix import Radix
 from socket import AF_INET
 
 __version__ = '0.0.1'
+__all__ = ['adjust']
 
 log = logging.getLogger(__name__)
 log.addHandler(logging.NullHandler())
@@ -75,15 +76,15 @@ def adjust(networks):
     for node in sorted_nodes:
         if should_debug:
             log.debug('Decide what to do with original network %s', node.prefix)
-        if has_subnet(node.prefix, nets_trie):
-            generate_subnets(nets_trie,
+        if _has_subnet(node.prefix, nets_trie):
+            _generate_subnets(nets_trie,
                              IPNetwork(node.prefix),
                              32 if node.family == AF_INET else 128)
             nets_trie.delete(node.prefix)
 
     return nets_trie.prefixes()
 
-def has_subnet(network_prefix, trie):
+def _has_subnet(network_prefix, trie):
     """Check whether or not a network has a subnet in the trie."""
 
     should_debug = log.isEnabledFor(logging.DEBUG)
@@ -108,7 +109,7 @@ def has_subnet(network_prefix, trie):
 
     return False
 
-def generate_subnets(trie, network, max_prefixlen):
+def _generate_subnets(trie, network, max_prefixlen):
     """Generate subnet_prefixlen (smaller) subnets for the supplied network.
 
     A generated network which has a subnet needing to be preserved will itself
@@ -132,14 +133,14 @@ def generate_subnets(trie, network, max_prefixlen):
             if should_debug:
                 log.debug(' Subnet %s exists - SKIP', subnet_cidr)
             continue
-        if not has_subnet(subnet_cidr, trie):
+        if not _has_subnet(subnet_cidr, trie):
             if should_debug:
                 log.debug(' Subnet %s is desired - ADD', subnet_cidr)
             trie.add(subnet_cidr)
         else:
-            generate_subnets(trie, IPNetwork(subnet_cidr), max_prefixlen)
+            _generate_subnets(trie, IPNetwork(subnet_cidr), max_prefixlen)
 
-def get_blocks(iter_):
+def _get_blocks(iter_):
     result = []
     for elem in iter_:
         candidate = elem.strip()
@@ -147,11 +148,11 @@ def get_blocks(iter_):
             result.append(candidate)
     return result
 
-def read_blocks_from_args(blocks):
-    return get_blocks(blocks.split(','))
+def _read_blocks_from_args(blocks):
+    return _get_blocks(blocks.split(','))
 
-def read_blocks_from_file(f):
-    return get_blocks(f)
+def _read_blocks_from_file(f):
+    return _get_blocks(f)
 
 def main(args):
     """Read a list of networks, adjust and write the adjusted list."""
@@ -159,12 +160,12 @@ def main(args):
     networks = []
 
     if args['BLOCKS']:
-        networks = read_blocks_from_args(args['BLOCKS'])
+        networks = _read_blocks_from_args(args['BLOCKS'])
     elif args['-i'] == '-':
-        networks = read_blocks_from_file(sys.stdin)
+        networks = _read_blocks_from_file(sys.stdin)
     else:
         with open(args['-i'], 'r') as f:
-            networks = read_blocks_from_file(f)
+            networks = _read_blocks_from_file(f)
 
     if len(networks) < 1:
         return 2
